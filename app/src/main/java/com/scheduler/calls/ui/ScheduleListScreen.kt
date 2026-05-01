@@ -26,11 +26,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.scheduler.calls.R
 import com.scheduler.calls.data.ScheduledCall
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,17 +47,20 @@ fun ScheduleListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scheduled Calls") },
+                title = { Text(stringResource(R.string.list_title)) },
                 actions = {
                     IconButton(onClick = onHistory) {
-                        Icon(Icons.Default.History, contentDescription = "History")
+                        Icon(
+                            Icons.Default.History,
+                            contentDescription = stringResource(R.string.action_history)
+                        )
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAdd) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.action_add))
             }
         }
     ) { padding ->
@@ -64,7 +69,7 @@ fun ScheduleListScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No scheduled calls. Tap + to add one.")
+                Text(stringResource(R.string.list_empty))
             }
         } else {
             LazyColumn(
@@ -85,6 +90,7 @@ private fun CallRow(
     onEdit: (ScheduledCall) -> Unit,
     onDelete: (ScheduledCall) -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -97,7 +103,17 @@ private fun CallRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(call.contactName.ifBlank { call.phoneNumber }, fontWeight = FontWeight.Bold)
                 Text(call.phoneNumber, style = MaterialTheme.typography.bodySmall)
-                Text(formatTime(call.scheduledTimeMillis), style = MaterialTheme.typography.bodyMedium)
+                Text(formatLocal(call), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    stringResource(R.string.zone_label, call.zoneId),
+                    style = MaterialTheme.typography.labelSmall
+                )
+                if (call.recurrence != com.scheduler.calls.data.Recurrence.NONE) {
+                    Text(
+                        stringResource(R.string.repeats_prefix, call.recurrence.label(context)),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
                 if (call.notes.isNotBlank()) {
                     Text(
                         text = call.notes,
@@ -107,19 +123,24 @@ private fun CallRow(
                 }
                 if (call.triggered) {
                     Text(
-                        text = "Triggered",
+                        text = stringResource(R.string.status_triggered),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
             IconButton(onClick = { onDelete(call) }) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.action_delete)
+                )
             }
         }
     }
 }
 
-private val displayFormat = SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault())
+private val rowFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("EEE, MMM d • h:mm a", Locale.getDefault())
 
-private fun formatTime(millis: Long): String = displayFormat.format(Date(millis))
+private fun formatLocal(call: ScheduledCall): String =
+    rowFormatter.format(call.parsedLocalDateTime())

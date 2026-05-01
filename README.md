@@ -90,3 +90,35 @@ app/src/main/java/com/scheduler/calls/
   for reliable firing.
 - Database is included in `data_extraction_rules.xml` and `backup_rules.xml`,
   so reinstall/transfer preserves your schedule.
+
+## Timezone semantics
+
+Calls are stored as `(LocalDateTime, ZoneId)` rather than as a raw UTC
+instant. The `ZoneId` is captured from the device at save time. The
+absolute fire time is derived as `localDateTime.atZone(zoneId).toInstant()`.
+
+Practical effects:
+
+- **DST transitions** are handled automatically — "8 AM daily" stays at
+  8 AM wall-clock time across spring-forward/fall-back.
+- **Travel** keeps calls anchored to the original zone (calendar-style):
+  scheduling 9 AM Pacific while in LA means the call still fires at 9 AM
+  Pacific even if you're in NYC at fire time.
+- **Boot recovery** recomputes the instant from the stored zone in case
+  DST changed while the device was off.
+
+## Tests
+
+JVM unit tests cover the recurrence math and timezone-aware millis
+computation:
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+## Theming
+
+`SchedulerTheme` uses Material3 dynamic color on Android 12+ (matches the
+user's wallpaper) and falls back to a hand-tuned light/dark scheme.
+The Activity theme is `Theme.Material3.DayNight.NoActionBar`, so the
+status bar follows the system light/dark setting.

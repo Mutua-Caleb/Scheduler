@@ -1,4 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Call Scheduler</string>
+
+    <!-- List screen -->
+    <string name="list_title">Scheduled Calls</string>
+    <string name="list_empty">No scheduled calls. Tap + to add one.</string>
+    <string name="action_add">Add</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_history">History</string>
+    <string name="status_triggered">Triggered</string>
+    <string name="zone_label">Zone: %1$s</string>
+
+    <!-- Edit screen -->
+    <string name="edit_title_new">New Call</string>
+    <string name="edit_title_edit">Edit Call</string>
+    <string name="pick_from_contacts">Pick from contacts</string>
+    <string name="label_contact_name">Contact name</string>
+    <string name="label_phone_number">Phone number</string>
+    <string name="label_notes">Notes (shown when calling)</string>
+    <string name="scheduled_prefix">Scheduled: %1$s</string>
+    <string name="pick_date">Pick date</string>
+    <string name="pick_time">Pick time</string>
+    <string name="repeats_prefix">Repeats: %1$s</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+
+    <!-- Recurrence -->
+    <string name="recurrence_none">Once</string>
+    <string name="recurrence_daily">Every day</string>
+    <string name="recurrence_weekdays">Weekdays</string>
+    <string name="recurrence_weekly">Every week</string>
+
+    <!-- History -->
+    <string name="history_title">Call history</string>
+    <string name="history_empty">No call history yet.</string>
+    <string name="action_back">Back</string>
+    <string name="outcome_called">Called</string>
+    <string name="outcome_auto_fired">Auto-dialed</string>
+    <string name="outcome_snoozed">Snoozed</string>
+    <string name="outcome_cancelled">Cancelled</string>
+
+    <!-- Battery optimization dialog -->
+    <string name="battery_dialog_title">Allow background calls</string>
+    <string name="battery_dialog_message">To make sure scheduled calls fire on time, please exempt this app from battery optimization. Without this, Android may delay or skip your scheduled calls — especially on Xiaomi, Huawei, Samsung, and OPPO devices.</string>
+    <string name="battery_dialog_open">Open settings</string>
+    <string name="battery_dialog_not_now">Not now</string>
+
+    <!-- Notifications -->
+    <string name="channel_confirm_name">Call confirmation</string>
+    <string name="channel_confirm_description">Heads-up before placing a scheduled call</string>
+    <string name="channel_notes_name">Call notes</string>
+    <string name="channel_notes_description">Shows your notes during a scheduled call</string>
+    <string name="confirm_title">Calling %1$s</string>
+    <string name="confirm_auto_dial">Auto-dialing in 30s.</string>
+    <string name="action_call_now">Call now</string>
+    <string name="action_snooze">Snooze 10m</string>
+    <string name="overlay_default_title">Call notes</string>
+    <string name="overlay_calling">Calling %1$s</string>
+    <string name="overlay_default_body">Showing your scheduled call notes</string>
+    <string name="overlay_no_notes">(no notes)</string>
+    <string name="overlay_dismiss">Dismiss</string>
 </resources>

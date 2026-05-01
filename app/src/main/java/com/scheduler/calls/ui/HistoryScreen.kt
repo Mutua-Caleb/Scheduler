@@ -21,8 +21,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.scheduler.calls.R
 import com.scheduler.calls.data.CallEvent
 import com.scheduler.calls.data.CallOutcome
 import java.text.SimpleDateFormat
@@ -35,10 +37,13 @@ fun HistoryScreen(history: List<CallEvent>, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Call history") },
+                title = { Text(stringResource(R.string.history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
                     }
                 }
             )
@@ -46,7 +51,7 @@ fun HistoryScreen(history: List<CallEvent>, onBack: () -> Unit) {
     ) { padding ->
         if (history.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("No call history yet.")
+                Text(stringResource(R.string.history_empty))
             }
         } else {
             LazyColumn(
@@ -70,7 +75,7 @@ private fun EventRow(event: CallEvent) {
             Text(event.phoneNumber, style = MaterialTheme.typography.bodySmall)
             Text(formatTimestamp(event.firedAtMillis), style = MaterialTheme.typography.bodyMedium)
             Text(
-                outcomeLabel(event.outcome),
+                stringResource(outcomeLabelRes(event.outcome)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -85,11 +90,11 @@ private fun EventRow(event: CallEvent) {
     }
 }
 
-private fun outcomeLabel(o: CallOutcome): String = when (o) {
-    CallOutcome.CALLED -> "Called"
-    CallOutcome.AUTO_FIRED -> "Auto-dialed"
-    CallOutcome.SNOOZED -> "Snoozed"
-    CallOutcome.CANCELLED -> "Cancelled"
+private fun outcomeLabelRes(o: CallOutcome): Int = when (o) {
+    CallOutcome.CALLED -> R.string.outcome_called
+    CallOutcome.AUTO_FIRED -> R.string.outcome_auto_fired
+    CallOutcome.SNOOZED -> R.string.outcome_snoozed
+    CallOutcome.CANCELLED -> R.string.outcome_cancelled
 }
 
 private val historyFormat = SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault())

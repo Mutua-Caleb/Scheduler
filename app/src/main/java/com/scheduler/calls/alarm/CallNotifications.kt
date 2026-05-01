@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.scheduler.calls.R
 import com.scheduler.calls.data.ScheduledCall
 
 object CallNotifications {
@@ -23,16 +24,16 @@ object CallNotifications {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_CONFIRM,
-                "Call confirmation",
+                context.getString(R.string.channel_confirm_name),
                 NotificationManager.IMPORTANCE_HIGH
-            ).apply { description = "Heads-up before placing a scheduled call" }
+            ).apply { description = context.getString(R.string.channel_confirm_description) }
         )
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_NOTES,
-                "Call notes",
+                context.getString(R.string.channel_notes_name),
                 NotificationManager.IMPORTANCE_HIGH
-            ).apply { description = "Shows your notes during a scheduled call" }
+            ).apply { description = context.getString(R.string.channel_notes_description) }
         )
     }
 
@@ -45,22 +46,22 @@ object CallNotifications {
         val snoozePi = actionPendingIntent(context, call.id, CallActionReceiver.ACTION_SNOOZE)
         val cancelPi = actionPendingIntent(context, call.id, CallActionReceiver.ACTION_CANCEL)
 
+        val displayName = call.contactName.ifBlank { call.phoneNumber }
+        val title = context.getString(R.string.confirm_title, displayName)
+        val autoLine = context.getString(R.string.confirm_auto_dial)
+        val bigText = buildString {
+            append(autoLine)
+            if (call.notes.isNotBlank()) {
+                append("\n\n")
+                append(call.notes)
+            }
+        }
+
         val notification: Notification = NotificationCompat.Builder(context, CHANNEL_CONFIRM)
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setContentTitle("Calling ${call.contactName.ifBlank { call.phoneNumber }}")
-            .setContentText(if (call.notes.isBlank()) "Auto-dialing in 30s" else call.notes)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(
-                        buildString {
-                            append("Auto-dialing in 30s.")
-                            if (call.notes.isNotBlank()) {
-                                append("\n\n")
-                                append(call.notes)
-                            }
-                        }
-                    )
-            )
+            .setContentTitle(title)
+            .setContentText(if (call.notes.isBlank()) autoLine else call.notes)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setOngoing(true)
@@ -69,9 +70,21 @@ object CallNotifications {
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
             .setFullScreenIntent(callNowPi, true)
-            .addAction(android.R.drawable.ic_menu_call, "Call now", callNowPi)
-            .addAction(android.R.drawable.ic_lock_idle_alarm, "Snooze 10m", snoozePi)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", cancelPi)
+            .addAction(
+                android.R.drawable.ic_menu_call,
+                context.getString(R.string.action_call_now),
+                callNowPi
+            )
+            .addAction(
+                android.R.drawable.ic_lock_idle_alarm,
+                context.getString(R.string.action_snooze),
+                snoozePi
+            )
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                context.getString(R.string.action_cancel),
+                cancelPi
+            )
             .build()
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

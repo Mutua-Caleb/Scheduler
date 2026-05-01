@@ -1,29 +1,28 @@
 package com.scheduler.calls.data
 
-import java.util.Calendar
+import android.content.Context
+import com.scheduler.calls.R
+import java.time.DayOfWeek
+import java.time.LocalDateTime
 
-enum class Recurrence(val label: String) {
-    NONE("Once"),
-    DAILY("Every day"),
-    WEEKDAYS("Weekdays"),
-    WEEKLY("Every week");
+enum class Recurrence(val labelRes: Int) {
+    NONE(R.string.recurrence_none),
+    DAILY(R.string.recurrence_daily),
+    WEEKDAYS(R.string.recurrence_weekdays),
+    WEEKLY(R.string.recurrence_weekly);
 
-    fun nextOccurrence(fromMillis: Long): Long? {
-        if (this == NONE) return null
-        val cal = Calendar.getInstance().apply { timeInMillis = fromMillis }
-        when (this) {
-            DAILY -> cal.add(Calendar.DAY_OF_YEAR, 1)
-            WEEKLY -> cal.add(Calendar.DAY_OF_YEAR, 7)
-            WEEKDAYS -> {
-                cal.add(Calendar.DAY_OF_YEAR, 1)
-                while (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY ||
-                    cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
-                ) {
-                    cal.add(Calendar.DAY_OF_YEAR, 1)
-                }
+    fun label(context: Context): String = context.getString(labelRes)
+
+    fun nextOccurrence(from: LocalDateTime): LocalDateTime? = when (this) {
+        NONE -> null
+        DAILY -> from.plusDays(1)
+        WEEKLY -> from.plusWeeks(1)
+        WEEKDAYS -> {
+            var next = from.plusDays(1)
+            while (next.dayOfWeek == DayOfWeek.SATURDAY || next.dayOfWeek == DayOfWeek.SUNDAY) {
+                next = next.plusDays(1)
             }
-            NONE -> Unit
+            next
         }
-        return cal.timeInMillis
     }
 }

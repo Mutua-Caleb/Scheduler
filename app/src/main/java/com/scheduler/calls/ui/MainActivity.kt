@@ -26,11 +26,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.edit
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.scheduler.calls.R
 import com.scheduler.calls.alarm.CallNotifications
+import com.scheduler.calls.ui.theme.SchedulerTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -47,8 +50,11 @@ class MainActivity : ComponentActivity() {
         requestStartupPermissions()
 
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            SchedulerTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     val navController = rememberNavController()
                     val calls by viewModel.calls.collectAsState()
                     val history by viewModel.history.collectAsState()
@@ -85,10 +91,10 @@ class MainActivity : ComponentActivity() {
                             val existing = calls.firstOrNull { it.id == id }
                             EditScheduleScreen(
                                 existing = existing,
-                                onSave = { name, phone, time, notes, recurrence ->
+                                onSave = { name, phone, local, zone, notes, recurrence ->
                                     ensureExactAlarmPermission()
                                     ensureOverlayPermission()
-                                    viewModel.saveCall(id, name, phone, time, notes, recurrence)
+                                    viewModel.saveCall(id, name, phone, local, zone, notes, recurrence)
                                     navController.popBackStack()
                                 },
                                 onCancel = { navController.popBackStack() }
@@ -170,20 +176,17 @@ class MainActivity : ComponentActivity() {
 private fun BatteryOptimizationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Allow background calls") },
-        text = {
-            Text(
-                "To make sure scheduled calls fire on time, please exempt this app " +
-                    "from battery optimization. Without this, Android may delay or " +
-                    "skip your scheduled calls — especially on Xiaomi, Huawei, " +
-                    "Samsung, and OPPO devices."
-            )
-        },
+        title = { Text(stringResource(R.string.battery_dialog_title)) },
+        text = { Text(stringResource(R.string.battery_dialog_message)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Open settings") }
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.battery_dialog_open))
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Not now") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.battery_dialog_not_now))
+            }
         }
     )
 }

@@ -24,6 +24,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import com.scheduler.calls.R
 import com.scheduler.calls.alarm.CallNotifications
 import java.util.concurrent.Executors
 
@@ -52,8 +53,12 @@ class NotesOverlayService : Service() {
 
     private fun startInForeground(name: String, notes: String) {
         CallNotifications.ensureChannels(this)
-        val title = if (name.isBlank()) "Call notes" else "Calling $name"
-        val body = if (notes.isBlank()) "Showing your scheduled call notes" else notes
+        val title = if (name.isBlank()) {
+            getString(R.string.overlay_default_title)
+        } else {
+            getString(R.string.overlay_calling, name)
+        }
+        val body = if (notes.isBlank()) getString(R.string.overlay_default_body) else notes
         val notification: Notification = NotificationCompat.Builder(this, CallNotifications.CHANNEL_NOTES)
             .setContentTitle(title)
             .setContentText(body)
@@ -138,21 +143,25 @@ class NotesOverlayService : Service() {
         }
 
         val title = TextView(this).apply {
-            text = if (name.isBlank()) "Call notes" else "Calling $name"
+            text = if (name.isBlank()) {
+                getString(R.string.overlay_default_title)
+            } else {
+                getString(R.string.overlay_calling, name)
+            }
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
 
         val body = TextView(this).apply {
-            text = if (notes.isBlank()) "(no notes)" else notes
+            text = if (notes.isBlank()) getString(R.string.overlay_no_notes) else notes
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, dp(8), 0, dp(8))
         }
 
         val close = Button(this).apply {
-            text = "Dismiss"
+            text = getString(R.string.overlay_dismiss)
             setOnClickListener { stopSelf() }
         }
 

@@ -10,6 +10,7 @@ import com.scheduler.calls.data.CallEvent
 import com.scheduler.calls.data.CallOutcome
 import com.scheduler.calls.data.CallRepository
 import com.scheduler.calls.data.ScheduledCall
+import com.scheduler.calls.data.ScheduledCallTime
 import com.scheduler.calls.overlay.NotesOverlayService
 
 object CallExecutor {
@@ -58,9 +59,15 @@ object CallExecutor {
         call: ScheduledCall,
         repo: CallRepository
     ) {
-        val next = call.recurrence.nextOccurrence(call.scheduledTimeMillis) ?: return
-        val refreshed = call.copy(scheduledTimeMillis = next, triggered = false)
+        val nextLocal = call.recurrence.nextOccurrence(call.parsedLocalDateTime()) ?: return
+        val zone = call.zone()
+        val nextMillis = ScheduledCallTime.computeMillis(nextLocal, zone)
+        val refreshed = call.copy(
+            localDateTime = nextLocal.toString(),
+            scheduledTimeMillis = nextMillis,
+            triggered = false
+        )
         repo.update(refreshed)
-        CallScheduler.schedule(context, refreshed.id, next)
+        CallScheduler.schedule(context, refreshed.id, nextMillis)
     }
 }
