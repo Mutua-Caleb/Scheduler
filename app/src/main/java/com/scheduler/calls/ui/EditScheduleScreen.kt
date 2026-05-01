@@ -1,15 +1,24 @@
 package com.scheduler.calls.ui
 
+import android.app.Activity
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
+import android.provider.ContactsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -47,6 +56,18 @@ fun EditScheduleScreen(
         )
     }
 
+    val pickContact = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val picked = readPickedContact(context, result.data)
+            if (picked != null) {
+                name = picked.first
+                phone = picked.second
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(if (existing == null) "New Call" else "Edit Call") })
@@ -59,6 +80,20 @@ fun EditScheduleScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            OutlinedButton(
+                onClick = {
+                    val intent = Intent(
+                        Intent.ACTION_PICK,
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+                    )
+                    pickContact.launch(intent)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Contacts, contentDescription = null)
+                Text("  Pick from contacts")
+            }
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -156,3 +191,18 @@ private fun pickTime(context: android.content.Context, current: Long, onResult: 
 private val dateTimeFormat = SimpleDateFormat("EEE, MMM d yyyy • h:mm a", Locale.getDefault())
 
 private fun formatDateTime(millis: Long): String = dateTimeFormat.format(Date(millis))
+
+private fun readPickedContact(context: Context, data: Intent?): Pair<String, String>? {
+    val uri = data?.data ?: return null
+    val projection = arrayOf(
+        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+        ContactsContract.CommonDataKinds.Phone.NUMBER
+    )
+    return context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            val displayName = cursor.getString(0).orEmpty()
+            val number = cursor.getString(1).orEmpty()
+            displayName to number
+        } else null
+    }
+}
