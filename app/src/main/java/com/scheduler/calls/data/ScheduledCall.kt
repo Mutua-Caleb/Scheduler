@@ -10,5 +10,6 @@ data class ScheduledCall(
     val phoneNumber: String,
     val scheduledTimeMillis: Long,
     val notes: String,
-    val triggered: Boolean = false
+    val triggered: Boolean = false,
+    val recurrence: Recurrence = Recurrence.NONE
 )

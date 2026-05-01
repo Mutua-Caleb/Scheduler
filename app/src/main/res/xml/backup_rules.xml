@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <include domain="sharedpref" path="." />
+    <include domain="database" path="scheduler.db" />
+    <include domain="database" path="scheduler.db-shm" />
+    <include domain="database" path="scheduler.db-wal" />
 </full-backup-content>

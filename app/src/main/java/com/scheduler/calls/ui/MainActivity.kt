@@ -1,26 +1,36 @@
 package com.scheduler.calls.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.edit
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.scheduler.calls.alarm.CallNotifications
 
 class MainActivity : ComponentActivity() {
 
@@ -33,6 +43,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        CallNotifications.ensureChannels(this)
         requestStartupPermissions()
 
         setContent {
@@ -40,6 +51,24 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val navController = rememberNavController()
                     val calls by viewModel.calls.collectAsState()
+                    val history by viewModel.history.collectAsState()
+
+                    var showBatteryDialog by remember {
+                        mutableStateOf(shouldPromptBatteryOptimization())
+                    }
+                    if (showBatteryDialog) {
+                        BatteryOptimizationDialog(
+                            onConfirm = {
+                                markBatteryOptimizationAsked()
+                                showBatteryDialog = false
+                                launchBatteryOptimizationSettings()
+                            },
+                            onDismiss = {
+                                markBatteryOptimizationAsked()
+                                showBatteryDialog = false
+                            }
+                        )
+                    }
 
                     NavHost(navController = navController, startDestination = "list") {
                         composable("list") {
@@ -47,7 +76,8 @@ class MainActivity : ComponentActivity() {
                                 calls = calls,
                                 onAdd = { navController.navigate("edit/0") },
                                 onEdit = { navController.navigate("edit/${it.id}") },
-                                onDelete = viewModel::delete
+                                onDelete = viewModel::delete,
+                                onHistory = { navController.navigate("history") }
                             )
                         }
                         composable("edit/{id}") { entry ->
@@ -55,13 +85,19 @@ class MainActivity : ComponentActivity() {
                             val existing = calls.firstOrNull { it.id == id }
                             EditScheduleScreen(
                                 existing = existing,
-                                onSave = { name, phone, time, notes ->
+                                onSave = { name, phone, time, notes, recurrence ->
                                     ensureExactAlarmPermission()
                                     ensureOverlayPermission()
-                                    viewModel.saveCall(id, name, phone, time, notes)
+                                    viewModel.saveCall(id, name, phone, time, notes, recurrence)
                                     navController.popBackStack()
                                 },
                                 onCancel = { navController.popBackStack() }
+                            )
+                        }
+                        composable("history") {
+                            HistoryScreen(
+                                history = history,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }
@@ -71,7 +107,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestStartupPermissions() {
-        val perms = mutableListOf(Manifest.permission.CALL_PHONE)
+        val perms = mutableListOf(
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.READ_PHONE_STATE
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             perms += Manifest.permission.POST_NOTIFICATIONS
         }
@@ -96,4 +135,55 @@ class MainActivity : ComponentActivity() {
             startActivity(intent)
         }
     }
+
+    private fun shouldPromptBatteryOptimization(): Boolean {
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_BATTERY_ASKED, false)) return false
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        return !pm.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    private fun markBatteryOptimizationAsked() {
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit {
+            putBoolean(KEY_BATTERY_ASKED, true)
+        }
+    }
+
+    @SuppressLint("BatteryLife")
+    private fun launchBatteryOptimizationSettings() {
+        val intent = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:$packageName")
+        )
+        runCatching { startActivity(intent) }.onFailure {
+            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+    }
+
+    companion object {
+        private const val PREFS = "scheduler_prefs"
+        private const val KEY_BATTERY_ASKED = "battery_optimization_asked"
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun BatteryOptimizationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Allow background calls") },
+        text = {
+            Text(
+                "To make sure scheduled calls fire on time, please exempt this app " +
+                    "from battery optimization. Without this, Android may delay or " +
+                    "skip your scheduled calls — especially on Xiaomi, Huawei, " +
+                    "Samsung, and OPPO devices."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Open settings") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Not now") }
+        }
+    )
 }

@@ -4,11 +4,29 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
 
-@Database(entities = [ScheduledCall::class], version = 1, exportSchema = false)
+class Converters {
+    @TypeConverter fun fromRecurrence(value: Recurrence): String = value.name
+    @TypeConverter fun toRecurrence(value: String): Recurrence =
+        runCatching { Recurrence.valueOf(value) }.getOrDefault(Recurrence.NONE)
+
+    @TypeConverter fun fromOutcome(value: CallOutcome): String = value.name
+    @TypeConverter fun toOutcome(value: String): CallOutcome =
+        runCatching { CallOutcome.valueOf(value) }.getOrDefault(CallOutcome.CALLED)
+}
+
+@Database(
+    entities = [ScheduledCall::class, CallEvent::class],
+    version = 2,
+    exportSchema = false
+)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun scheduledCallDao(): ScheduledCallDao
+    abstract fun callEventDao(): CallEventDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -19,7 +37,10 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "scheduler.db"
-                ).build().also { INSTANCE = it }
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
+                    .also { INSTANCE = it }
             }
     }
 }

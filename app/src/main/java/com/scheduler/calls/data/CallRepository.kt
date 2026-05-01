@@ -2,18 +2,27 @@ package com.scheduler.calls.data
 
 import kotlinx.coroutines.flow.Flow
 
-class CallRepository(private val dao: ScheduledCallDao) {
+class CallRepository(
+    private val callDao: ScheduledCallDao,
+    private val eventDao: CallEventDao
+) {
 
-    fun observeAll(): Flow<List<ScheduledCall>> = dao.observeAll()
+    fun observeAll(): Flow<List<ScheduledCall>> = callDao.observeAll()
 
-    suspend fun getById(id: Long): ScheduledCall? = dao.getById(id)
+    fun observeHistory(): Flow<List<CallEvent>> = eventDao.observeRecent()
 
-    suspend fun getUpcoming(now: Long): List<ScheduledCall> = dao.getUpcoming(now)
+    suspend fun getById(id: Long): ScheduledCall? = callDao.getById(id)
+
+    suspend fun getUpcoming(now: Long): List<ScheduledCall> = callDao.getUpcoming(now)
 
     suspend fun upsert(call: ScheduledCall): Long =
-        if (call.id == 0L) dao.insert(call) else { dao.update(call); call.id }
+        if (call.id == 0L) callDao.insert(call) else { callDao.update(call); call.id }
 
-    suspend fun delete(call: ScheduledCall) = dao.delete(call)
+    suspend fun delete(call: ScheduledCall) = callDao.delete(call)
 
-    suspend fun markTriggered(id: Long) = dao.markTriggered(id)
+    suspend fun markTriggered(id: Long) = callDao.markTriggered(id)
+
+    suspend fun update(call: ScheduledCall) = callDao.update(call)
+
+    suspend fun logEvent(event: CallEvent) { eventDao.insert(event) }
 }

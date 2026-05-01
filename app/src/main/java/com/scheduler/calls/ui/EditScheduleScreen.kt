@@ -14,9 +14,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -32,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.scheduler.calls.data.Recurrence
 import com.scheduler.calls.data.ScheduledCall
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -42,7 +47,7 @@ import java.util.Locale
 @Composable
 fun EditScheduleScreen(
     existing: ScheduledCall?,
-    onSave: (name: String, phone: String, time: Long, notes: String) -> Unit,
+    onSave: (name: String, phone: String, time: Long, notes: String, recurrence: Recurrence) -> Unit,
     onCancel: () -> Unit
 ) {
     val context = LocalContext.current
@@ -55,6 +60,8 @@ fun EditScheduleScreen(
             existing?.scheduledTimeMillis ?: defaultFutureTime()
         )
     }
+    var recurrence by remember { mutableStateOf(existing?.recurrence ?: Recurrence.NONE) }
+    var recurrenceMenuOpen by remember { mutableStateOf(false) }
 
     val pickContact = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -128,6 +135,30 @@ fun EditScheduleScreen(
                 }
             }
 
+            Box {
+                OutlinedButton(
+                    onClick = { recurrenceMenuOpen = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Repeats: ${recurrence.label}")
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                }
+                DropdownMenu(
+                    expanded = recurrenceMenuOpen,
+                    onDismissRequest = { recurrenceMenuOpen = false }
+                ) {
+                    Recurrence.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.label) },
+                            onClick = {
+                                recurrence = option
+                                recurrenceMenuOpen = false
+                            }
+                        )
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -136,7 +167,7 @@ fun EditScheduleScreen(
                     Text("Cancel")
                 }
                 Button(
-                    onClick = { onSave(name, phone, timeMillis, notes) },
+                    onClick = { onSave(name, phone, timeMillis, notes, recurrence) },
                     enabled = phone.isNotBlank() && timeMillis > System.currentTimeMillis(),
                     modifier = Modifier.weight(1f)
                 ) {

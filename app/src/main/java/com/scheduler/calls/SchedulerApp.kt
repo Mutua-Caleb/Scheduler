@@ -7,6 +7,7 @@ import com.scheduler.calls.data.CallRepository
 class SchedulerApp : Application() {
 
     val repository: CallRepository by lazy {
-        CallRepository(AppDatabase.get(this).scheduledCallDao())
+        val db = AppDatabase.get(this)
+        CallRepository(db.scheduledCallDao(), db.callEventDao())
     }
 }

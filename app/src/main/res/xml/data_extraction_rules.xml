@@ -2,8 +2,14 @@
 <data-extraction-rules>
     <cloud-backup>
         <include domain="sharedpref" path="." />
+        <include domain="database" path="scheduler.db" />
+        <include domain="database" path="scheduler.db-shm" />
+        <include domain="database" path="scheduler.db-wal" />
     </cloud-backup>
     <device-transfer>
         <include domain="sharedpref" path="." />
+        <include domain="database" path="scheduler.db" />
+        <include domain="database" path="scheduler.db-shm" />
+        <include domain="database" path="scheduler.db-wal" />
     </device-transfer>
 </data-extraction-rules>

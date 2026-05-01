@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".SchedulerApp"
@@ -37,6 +38,10 @@
 
         <receiver
             android:name=".alarm.CallAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".alarm.CallActionReceiver"
             android:exported="false" />
 
         <receiver

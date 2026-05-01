@@ -1,8 +1,7 @@
 package com.scheduler.calls.overlay
 
+import android.annotation.SuppressLint
 import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -13,6 +12,9 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyCallback
+import android.telephony.TelephonyManager
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
@@ -22,11 +24,16 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import com.scheduler.calls.alarm.CallNotifications
+import java.util.concurrent.Executors
 
 class NotesOverlayService : Service() {
 
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
+    private var telephonyManager: TelephonyManager? = null
+    private var phoneCallback: Any? = null
+    private var sawCallActive = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -34,31 +41,26 @@ class NotesOverlayService : Service() {
         val name = intent?.getStringExtra(EXTRA_NAME).orEmpty()
         val notes = intent?.getStringExtra(EXTRA_NOTES).orEmpty()
 
-        startInForeground(name)
+        startInForeground(name, notes)
+        registerCallStateListener()
 
-        if (!Settings.canDrawOverlays(this)) {
-            stopSelf()
-            return START_NOT_STICKY
+        if (Settings.canDrawOverlays(this)) {
+            showOverlay(name, notes)
         }
-
-        showOverlay(name, notes)
         return START_STICKY
     }
 
-    private fun startInForeground(name: String) {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Scheduled call notes",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            nm.createNotificationChannel(channel)
-        }
-        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Call notes")
-            .setContentText(if (name.isBlank()) "Showing your scheduled call notes" else "Calling $name")
+    private fun startInForeground(name: String, notes: String) {
+        CallNotifications.ensureChannels(this)
+        val title = if (name.isBlank()) "Call notes" else "Calling $name"
+        val body = if (notes.isBlank()) "Showing your scheduled call notes" else notes
+        val notification: Notification = NotificationCompat.Builder(this, CallNotifications.CHANNEL_NOTES)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setSmallIcon(android.R.drawable.ic_menu_call)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
             .setOngoing(true)
             .build()
 
@@ -71,6 +73,55 @@ class NotesOverlayService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun registerCallStateListener() {
+        val tm = getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager ?: return
+        telephonyManager = tm
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val cb = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
+                    override fun onCallStateChanged(state: Int) = handleCallState(state)
+                }
+                phoneCallback = cb
+                tm.registerTelephonyCallback(Executors.newSingleThreadExecutor(), cb)
+            } else {
+                @Suppress("DEPRECATION")
+                val cb = object : PhoneStateListener() {
+                    override fun onCallStateChanged(state: Int, phoneNumber: String?) =
+                        handleCallState(state)
+                }
+                phoneCallback = cb
+                @Suppress("DEPRECATION")
+                tm.listen(cb, PhoneStateListener.LISTEN_CALL_STATE)
+            }
+        } catch (_: SecurityException) {
+            // READ_PHONE_STATE not granted; user must dismiss manually
+        }
+    }
+
+    private fun handleCallState(state: Int) {
+        when (state) {
+            TelephonyManager.CALL_STATE_OFFHOOK,
+            TelephonyManager.CALL_STATE_RINGING -> sawCallActive = true
+            TelephonyManager.CALL_STATE_IDLE -> if (sawCallActive) stopSelf()
+        }
+    }
+
+    private fun unregisterCallStateListener() {
+        val tm = telephonyManager ?: return
+        val cb = phoneCallback ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && cb is TelephonyCallback) {
+                tm.unregisterTelephonyCallback(cb)
+            } else if (cb is PhoneStateListener) {
+                @Suppress("DEPRECATION")
+                tm.listen(cb, PhoneStateListener.LISTEN_NONE)
+            }
+        } catch (_: Throwable) { /* best effort */ }
+        telephonyManager = null
+        phoneCallback = null
     }
 
     private fun showOverlay(name: String, notes: String) {
@@ -163,7 +214,8 @@ class NotesOverlayService : Service() {
     }
 
     override fun onDestroy() {
-        overlayView?.let { windowManager?.removeView(it) }
+        unregisterCallStateListener()
+        overlayView?.let { runCatching { windowManager?.removeView(it) } }
         overlayView = null
         windowManager = null
         super.onDestroy()
@@ -173,7 +225,6 @@ class NotesOverlayService : Service() {
         (value * resources.displayMetrics.density).toInt()
 
     companion object {
-        private const val CHANNEL_ID = "call_notes_overlay"
         private const val NOTIFICATION_ID = 4242
         private const val EXTRA_NAME = "name"
         private const val EXTRA_NOTES = "notes"

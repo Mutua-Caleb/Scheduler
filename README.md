@@ -1,16 +1,24 @@
 # Call Scheduler (Android)
 
-Schedule calls to fire automatically at a specific date/time, with notes that are
+Schedule calls to fire automatically at a specific date/time, with notes
 displayed on top of the dialer the moment the call is placed.
 
 ## What it does
 
-- Save a contact name, phone number, date/time, and free-form notes ("Ask about Q3 budget").
-- At the scheduled moment, the app:
-  1. Wakes the device with an exact alarm (`AlarmManager.setExactAndAllowWhileIdle`).
-  2. Places the call automatically via `Intent.ACTION_CALL`.
-  3. Floats your notes on top of the dialer using a `SYSTEM_ALERT_WINDOW` overlay, so
-     you can see exactly why you're calling that person.
+- Save a contact (via system contact picker), date/time, recurrence, and
+  free-form notes ("Ask about Q3 budget").
+- At the scheduled moment a heads-up confirmation notification appears with
+  three actions: **Call now**, **Snooze 10m**, **Cancel**. After 30 seconds
+  with no response, the call is auto-placed.
+- When the call is placed, the app:
+  1. Floats your notes on top of the dialer using a `SYSTEM_ALERT_WINDOW`
+     overlay (or a heads-up notification fallback if overlay perm is denied).
+  2. Auto-dismisses the overlay when the call ends (`TelephonyCallback`
+     `CALL_STATE_IDLE`).
+- Recurring schedules: NONE / DAILY / WEEKDAYS / WEEKLY. After a recurring
+  call fires, the next occurrence is automatically computed and re-armed.
+- A history screen logs every fired call with its outcome
+  (CALLED / AUTO_FIRED / SNOOZED / CANCELLED).
 - Survives reboots: a `BootReceiver` re-registers all upcoming alarms.
 
 ## Build & run
@@ -27,43 +35,58 @@ From CLI (after generating the wrapper once with `gradle wrapper --gradle-versio
 
 ## Permissions you'll need to grant
 
-The first time you save a schedule, Android will ask for:
+The first time you launch and save a schedule, Android will ask for:
 
 - **Phone (CALL_PHONE)** — to place the call. If denied, the dialer opens
   pre-filled with the number instead.
-- **Notifications (POST_NOTIFICATIONS, Android 13+)** — for the foreground
-  service that hosts the notes overlay.
+- **Read phone state (READ_PHONE_STATE)** — so the overlay can auto-dismiss
+  when the call ends.
+- **Notifications (POST_NOTIFICATIONS, Android 13+)** — for the call
+  confirmation and the foreground service that hosts the notes overlay.
 - **Schedule exact alarms (Android 12+)** — needed for time-precise firing;
   the app routes you to system settings if not granted.
-- **Display over other apps (SYSTEM_ALERT_WINDOW)** — needed to overlay the
-  notes on the dialer.
+- **Display over other apps (SYSTEM_ALERT_WINDOW)** — to overlay the notes on
+  the dialer. If denied, the notes appear as a heads-up notification.
+- **Battery-optimization exemption** — a one-time dialog routes you to
+  settings. Without this, OEMs (Xiaomi, Huawei, Samsung, OPPO) may delay or
+  skip your scheduled calls.
 
 ## How a scheduled call flows
 
 1. `EditScheduleScreen` saves a `ScheduledCall` row to Room.
 2. `CallsViewModel` calls `CallScheduler.schedule()`, which registers an exact
    `AlarmManager` PendingIntent for the chosen time.
-3. At fire time, `CallAlarmReceiver.onReceive`:
-   - Marks the row as `triggered`.
-   - Starts `NotesOverlayService` (foreground + overlay window) showing the notes.
-   - Fires `Intent.ACTION_CALL` to dial the number.
-4. The notes float on top of the dialer; tap **Dismiss** when the call ends.
+3. At fire time, `CallAlarmReceiver` (action `FIRE_CALL`) shows the
+   confirmation notification and arms a second alarm 30s out.
+4. The user taps **Call now**, **Snooze 10m**, or **Cancel** (handled by
+   `CallActionReceiver`), or the 30s alarm fires and auto-places the call.
+5. `CallExecutor` cancels the confirmation, places the call via
+   `Intent.ACTION_CALL`, starts `NotesOverlayService`, logs a `CallEvent`,
+   marks the row triggered, and advances any recurrence.
+6. `NotesOverlayService` displays a draggable card with the notes and
+   auto-stops when the call ends.
 
 ## Project layout
 
 ```
 app/src/main/java/com/scheduler/calls/
-├── SchedulerApp.kt              # Application + repository wiring
-├── data/                        # Room: entity, DAO, database, repository
-├── alarm/                       # AlarmManager scheduling + BroadcastReceivers
-├── overlay/NotesOverlayService  # Foreground service rendering the overlay
-└── ui/                          # Compose screens + ViewModel + MainActivity
+├── SchedulerApp.kt                  # Application + repository wiring
+├── data/                            # Room: entities, DAOs, repository, recurrence
+├── alarm/
+│   ├── CallScheduler                # AlarmManager wrappers (fire + auto-place)
+│   ├── CallAlarmReceiver            # Handles fire & auto-place alarms
+│   ├── CallActionReceiver           # Handles Call now / Snooze / Cancel
+│   ├── CallNotifications            # Channels + confirmation notification
+│   ├── CallExecutor                 # Places the call, logs event, advances recurrence
+│   └── BootReceiver                 # Re-arms upcoming alarms after reboot
+├── overlay/NotesOverlayService      # Foreground overlay + telephony auto-close
+└── ui/                              # Compose screens, ViewModel, MainActivity
 ```
 
-## Notes on reliability
+## Reliability notes
 
-- Some OEMs (Xiaomi, Huawei, Samsung) aggressively kill background apps. To make
-  scheduled calls reliable, exempt the app from battery optimizations in system
-  settings.
-- Auto-placing a call requires `CALL_PHONE`. If that's denied, the app falls
-  back to opening the dialer pre-filled — you'll just need to tap call.
+- Battery-optimization exemption is requested on first launch via a dialog +
+  `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`. This is the most important step
+  for reliable firing.
+- Database is included in `data_extraction_rules.xml` and `backup_rules.xml`,
+  so reinstall/transfer preserves your schedule.
