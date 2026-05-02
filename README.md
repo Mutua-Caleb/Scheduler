@@ -1,7 +1,18 @@
-# Call Scheduler (Android)
+# Call Scheduler
 
 Schedule calls to fire automatically at a specific date/time, with notes
 displayed on top of the dialer the moment the call is placed.
+
+This repo contains two pieces:
+
+- **`app/`** — the Android app (Kotlin / Jetpack Compose).
+- **`server/`** — a small FastAPI desktop server with a web UI for fast
+  keyboard-driven entry. The phone syncs with this server.
+
+See [`server/README.md`](server/README.md) for desktop setup. Quick start:
+`cd server && ./run.sh`, then open `http://localhost:8765/`. In the Android
+app, tap the **Settings** icon and enter your laptop's LAN URL (e.g.
+`http://192.168.1.10:8765`).
 
 ## What it does
 

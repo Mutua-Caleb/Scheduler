@@ -58,6 +58,8 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val calls by viewModel.calls.collectAsState()
                     val history by viewModel.history.collectAsState()
+                    val syncing by viewModel.syncing.collectAsState()
+                    val syncMessage by viewModel.syncMessage.collectAsState()
 
                     var showBatteryDialog by remember {
                         mutableStateOf(shouldPromptBatteryOptimization())
@@ -83,7 +85,20 @@ class MainActivity : ComponentActivity() {
                                 onAdd = { navController.navigate("edit/0") },
                                 onEdit = { navController.navigate("edit/${it.id}") },
                                 onDelete = viewModel::delete,
-                                onHistory = { navController.navigate("history") }
+                                onHistory = { navController.navigate("history") },
+                                onSettings = { navController.navigate("settings") }
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
+                                initialUrl = viewModel.syncSettings.serverUrl,
+                                lastSyncMs = viewModel.syncSettings.lastSyncMs,
+                                lastSyncStatus = viewModel.syncSettings.lastSyncStatus,
+                                syncing = syncing,
+                                syncMessage = syncMessage,
+                                onSave = viewModel::setServerUrl,
+                                onSyncNow = viewModel::syncNow,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable("edit/{id}") { entry ->

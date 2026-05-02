@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -42,7 +43,8 @@ fun ScheduleListScreen(
     onAdd: () -> Unit,
     onEdit: (ScheduledCall) -> Unit,
     onDelete: (ScheduledCall) -> Unit,
-    onHistory: () -> Unit
+    onHistory: () -> Unit,
+    onSettings: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -53,6 +55,12 @@ fun ScheduleListScreen(
                         Icon(
                             Icons.Default.History,
                             contentDescription = stringResource(R.string.action_history)
+                        )
+                    }
+                    IconButton(onClick = onSettings) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.action_settings)
                         )
                     }
                 }

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Scheduler</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+    <h1>Call Scheduler</h1>
+    <button id="newBtn" class="primary" title="New call (n)">+ New call</button>
+</header>
+
+<main>
+    <section id="listSection">
+        <ul id="callList" class="call-list"></ul>
+        <p id="emptyMsg" class="empty">No scheduled calls. Press <kbd>n</kbd> to add one.</p>
+    </section>
+
+    <section id="editorSection" class="hidden">
+        <h2 id="editorTitle">New call</h2>
+        <form id="callForm">
+            <label>
+                Contact name
+                <input type="text" id="contactName" autocomplete="off">
+            </label>
+            <label>
+                Phone number
+                <input type="tel" id="phoneNumber" required autocomplete="off">
+            </label>
+            <div class="row">
+                <label>
+                    Date
+                    <input type="date" id="date" required>
+                </label>
+                <label>
+                    Time
+                    <input type="time" id="time" required>
+                </label>
+            </div>
+            <label>
+                Time zone
+                <select id="zoneId"></select>
+            </label>
+            <label>
+                Repeats
+                <select id="recurrence">
+                    <option value="NONE">Once</option>
+                    <option value="DAILY">Every day</option>
+                    <option value="WEEKDAYS">Weekdays</option>
+                    <option value="WEEKLY">Every week</option>
+                </select>
+            </label>
+            <label>
+                Notes (shown when calling)
+                <textarea id="notes" rows="6" placeholder="What do you want to ask or say?"></textarea>
+            </label>
+            <div class="actions">
+                <button type="button" id="deleteBtn" class="danger hidden">Delete</button>
+                <span class="spacer"></span>
+                <button type="button" id="cancelBtn">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+            </div>
+        </form>
+    </section>
+</main>
+
+<footer>
+    <span id="status"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

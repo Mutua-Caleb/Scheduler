@@ -19,7 +19,7 @@ class Converters {
 
 @Database(
     entities = [ScheduledCall::class, CallEvent::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

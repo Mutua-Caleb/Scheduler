@@ -10,8 +10,13 @@ import com.scheduler.calls.data.CallRepository
 import com.scheduler.calls.data.Recurrence
 import com.scheduler.calls.data.ScheduledCall
 import com.scheduler.calls.data.ScheduledCallTime
+import com.scheduler.calls.sync.SyncManager
+import com.scheduler.calls.sync.SyncSettings
+import com.scheduler.calls.sync.SyncWorker
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -19,13 +24,29 @@ import java.time.ZoneId
 
 class CallsViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val repo: CallRepository = (app as SchedulerApp).repository
+    private val schedulerApp = app as SchedulerApp
+    private val repo: CallRepository = schedulerApp.repository
+    private val syncManager: SyncManager = schedulerApp.syncManager
+    val syncSettings: SyncSettings = schedulerApp.syncSettings
 
     val calls: StateFlow<List<ScheduledCall>> =
         repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val history: StateFlow<List<CallEvent>> =
         repo.observeHistory().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _syncing = MutableStateFlow(false)
+    val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
+
+    private val _syncMessage = MutableStateFlow("")
+    val syncMessage: StateFlow<String> = _syncMessage.asStateFlow()
+
+    init {
+        // Try a one-shot sync on launch so the list is fresh when the user opens it.
+        if (syncSettings.isConfigured) {
+            SyncWorker.enqueueOneShot(getApplication())
+        }
+    }
 
     fun saveCall(
         existingId: Long,
@@ -48,8 +69,14 @@ class CallsViewModel(app: Application) : AndroidViewModel(app) {
                 else -> existing.triggered
             }
 
-            val call = ScheduledCall(
-                id = existingId,
+            val call = (existing ?: ScheduledCall(
+                contactName = "",
+                phoneNumber = "",
+                localDateTime = "",
+                zoneId = zoneId.id,
+                scheduledTimeMillis = 0L,
+                notes = ""
+            )).copy(
                 contactName = name.trim(),
                 phoneNumber = phone.trim(),
                 localDateTime = localDateTime.toString(),
@@ -57,12 +84,16 @@ class CallsViewModel(app: Application) : AndroidViewModel(app) {
                 scheduledTimeMillis = newMillis,
                 notes = notes.trim(),
                 triggered = newTriggered,
-                recurrence = recurrence
+                recurrence = recurrence,
+                tombstone = false
             )
             val id = repo.upsert(call)
             CallScheduler.cancel(getApplication(), id)
             if (timeIsFuture && !newTriggered) {
                 CallScheduler.schedule(getApplication(), id, newMillis)
+            }
+            if (syncSettings.isConfigured) {
+                SyncWorker.enqueueOneShot(getApplication())
             }
         }
     }
@@ -70,7 +101,32 @@ class CallsViewModel(app: Application) : AndroidViewModel(app) {
     fun delete(call: ScheduledCall) {
         viewModelScope.launch {
             CallScheduler.cancel(getApplication(), call.id)
-            repo.delete(call)
+            repo.softDelete(call)
+            if (syncSettings.isConfigured) {
+                SyncWorker.enqueueOneShot(getApplication())
+            }
+        }
+    }
+
+    fun syncNow() {
+        viewModelScope.launch {
+            _syncing.value = true
+            _syncMessage.value = ""
+            val result = syncManager.syncOnce()
+            _syncMessage.value = when (result) {
+                is SyncManager.Result.Ok ->
+                    "Synced (pulled ${result.pulled}, pushed ${result.pushed})"
+                is SyncManager.Result.NotConfigured -> "Server URL not set"
+                is SyncManager.Result.Error -> result.message
+            }
+            _syncing.value = false
+        }
+    }
+
+    fun setServerUrl(url: String) {
+        syncSettings.serverUrl = url
+        if (syncSettings.isConfigured) {
+            SyncWorker.enqueuePeriodic(getApplication())
         }
     }
 }

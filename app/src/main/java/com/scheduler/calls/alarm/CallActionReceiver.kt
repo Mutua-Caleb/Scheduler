@@ -8,6 +8,7 @@ import com.scheduler.calls.data.AppDatabase
 import com.scheduler.calls.data.CallEvent
 import com.scheduler.calls.data.CallOutcome
 import com.scheduler.calls.data.CallRepository
+import com.scheduler.calls.sync.SyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -65,6 +66,7 @@ class CallActionReceiver : BroadcastReceiver() {
                         CallExecutor.advanceRecurrence(context, call, repo)
                     }
                 }
+                SyncWorker.enqueueOneShot(context)
             } catch (t: Throwable) {
                 Log.e("CallActionReceiver", "Failed handling action: $action", t)
             } finally {

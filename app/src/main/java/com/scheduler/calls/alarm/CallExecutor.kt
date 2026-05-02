@@ -12,6 +12,7 @@ import com.scheduler.calls.data.CallRepository
 import com.scheduler.calls.data.ScheduledCall
 import com.scheduler.calls.data.ScheduledCallTime
 import com.scheduler.calls.overlay.NotesOverlayService
+import com.scheduler.calls.sync.SyncWorker
 
 object CallExecutor {
 
@@ -40,6 +41,7 @@ object CallExecutor {
 
         repo.markTriggered(call.id)
         advanceRecurrence(context, call, repo)
+        SyncWorker.enqueueOneShot(context)
     }
 
     private fun placeCall(context: Context, phoneNumber: String) {

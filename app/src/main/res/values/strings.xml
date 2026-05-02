@@ -46,6 +46,15 @@
     <string name="battery_dialog_open">Open settings</string>
     <string name="battery_dialog_not_now">Not now</string>
 
+    <!-- Settings / sync -->
+    <string name="settings_title">Settings</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_sync_now">Sync now</string>
+    <string name="settings_explainer">Enter the URL of your Call Scheduler desktop server. Calls you create on the desktop will appear here, and edits made on the phone push back to the server.</string>
+    <string name="label_server_url">Server URL</string>
+    <string name="last_sync_at">Last sync: %1$s</string>
+    <string name="last_sync_status">Status: %1$s</string>
+
     <!-- Notifications -->
     <string name="channel_confirm_name">Call confirmation</string>
     <string name="channel_confirm_description">Heads-up before placing a scheduled call</string>
