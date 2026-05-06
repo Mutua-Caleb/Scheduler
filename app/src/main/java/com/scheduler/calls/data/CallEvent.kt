@@ -5,6 +5,8 @@ import androidx.room.PrimaryKey
 
 enum class CallOutcome { CALLED, SNOOZED, CANCELLED, AUTO_FIRED }
 
+enum class CallResult { REACHED, NO_ANSWER, VOICEMAIL, FOLLOW_UP, OTHER }
+
 @Entity(tableName = "call_events")
 data class CallEvent(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -13,5 +15,8 @@ data class CallEvent(
     val phoneNumber: String,
     val firedAtMillis: Long,
     val outcome: CallOutcome,
-    val notes: String
+    val notes: String,
+    val callResult: CallResult? = null,
+    val resultNotes: String = "",
+    val resultRecordedAtMillis: Long? = null
 )

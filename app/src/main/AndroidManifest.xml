@@ -48,6 +48,16 @@
             android:exported="false" />
 
         <receiver
+            android:name=".alarm.CallResultReceiver"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.CallResultActivity"
+            android:exported="false"
+            android:label="@string/result_question"
+            android:theme="@style/Theme.Scheduler" />
+
+        <receiver
             android:name=".alarm.BootReceiver"
             android:exported="true">
             <intent-filter>

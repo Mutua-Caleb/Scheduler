@@ -25,10 +25,7 @@ object CallExecutor {
         CallNotifications.cancelConfirmation(context, call.id)
         CallScheduler.cancelAutoPlace(context, call.id)
 
-        NotesOverlayService.start(context, call.contactName, call.notes)
-        placeCall(context, call.phoneNumber)
-
-        repo.logEvent(
+        val eventId = repo.logEvent(
             CallEvent(
                 scheduledCallId = call.id,
                 contactName = call.contactName,
@@ -38,6 +35,9 @@ object CallExecutor {
                 notes = call.notes
             )
         )
+
+        NotesOverlayService.start(context, eventId, call.contactName, call.notes)
+        placeCall(context, call.phoneNumber)
 
         repo.markTriggered(call.id)
         advanceRecurrence(context, call, repo)

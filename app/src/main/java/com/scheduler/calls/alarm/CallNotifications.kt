@@ -15,8 +15,10 @@ object CallNotifications {
 
     const val CHANNEL_CONFIRM = "call_confirm"
     const val CHANNEL_NOTES = "call_notes_overlay"
+    const val CHANNEL_RESULT = "call_result_prompt"
 
     private const val CONFIRM_NOTIFICATION_ID_BASE = 10_000
+    private const val RESULT_NOTIFICATION_ID_BASE = 20_000
 
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -35,10 +37,20 @@ object CallNotifications {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply { description = context.getString(R.string.channel_notes_description) }
         )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_RESULT,
+                context.getString(R.string.channel_result_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply { description = context.getString(R.string.channel_result_description) }
+        )
     }
 
     fun confirmNotificationId(callId: Long): Int =
         CONFIRM_NOTIFICATION_ID_BASE + callId.toInt()
+
+    fun resultNotificationId(eventId: Long): Int =
+        RESULT_NOTIFICATION_ID_BASE + eventId.toInt()
 
     fun showConfirmation(context: Context, call: ScheduledCall, autoPlaceAtMillis: Long) {
         ensureChannels(context)
@@ -94,6 +106,70 @@ object CallNotifications {
     fun cancelConfirmation(context: Context, callId: Long) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(confirmNotificationId(callId))
+    }
+
+    fun showResultPrompt(
+        context: Context,
+        eventId: Long,
+        contactDisplay: String
+    ) {
+        ensureChannels(context)
+
+        fun resultPi(result: com.scheduler.calls.data.CallResult): PendingIntent {
+            val intent = Intent(context, CallResultReceiver::class.java).apply {
+                putExtra(CallResultReceiver.EXTRA_EVENT_ID, eventId)
+                putExtra(CallResultReceiver.EXTRA_RESULT, result.name)
+            }
+            val req = (eventId.toInt() shl 4) xor result.name.hashCode()
+            return PendingIntent.getBroadcast(
+                context, req, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        val openActivity = Intent(
+            context,
+            com.scheduler.calls.ui.CallResultActivity::class.java
+        ).apply {
+            putExtra(CallResultReceiver.EXTRA_EVENT_ID, eventId)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        val openPi = PendingIntent.getActivity(
+            context, eventId.toInt(), openActivity,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val title = context.getString(R.string.result_prompt_title, contactDisplay)
+        val body = context.getString(R.string.result_prompt_body)
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_RESULT)
+            .setSmallIcon(android.R.drawable.ic_menu_call)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            .setTimeoutAfter(30 * 60 * 1000L)
+            .setContentIntent(openPi)
+            .addAction(
+                0,
+                context.getString(R.string.result_reached),
+                resultPi(com.scheduler.calls.data.CallResult.REACHED)
+            )
+            .addAction(
+                0,
+                context.getString(R.string.result_no_answer),
+                resultPi(com.scheduler.calls.data.CallResult.NO_ANSWER)
+            )
+            .addAction(
+                0,
+                context.getString(R.string.result_voicemail),
+                resultPi(com.scheduler.calls.data.CallResult.VOICEMAIL)
+            )
+            .build()
+
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(resultNotificationId(eventId), notification)
     }
 
     private fun actionPendingIntent(context: Context, callId: Long, action: String): PendingIntent {

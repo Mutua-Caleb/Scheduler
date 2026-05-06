@@ -47,5 +47,11 @@ class CallRepository(
         callDao.update(call.copy(updatedAt = System.currentTimeMillis()))
     }
 
-    suspend fun logEvent(event: CallEvent) { eventDao.insert(event) }
+    suspend fun logEvent(event: CallEvent): Long = eventDao.insert(event)
+
+    suspend fun setCallResult(eventId: Long, result: CallResult, notes: String) {
+        eventDao.updateResult(eventId, result, notes, System.currentTimeMillis())
+    }
+
+    suspend fun getEvent(eventId: Long): CallEvent? = eventDao.getById(eventId)
 }

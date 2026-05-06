@@ -35,12 +35,17 @@ class NotesOverlayService : Service() {
     private var telephonyManager: TelephonyManager? = null
     private var phoneCallback: Any? = null
     private var sawCallActive = false
+    private var eventId: Long = -1L
+    private var contactDisplay: String = ""
+    private var resultPromptShown = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val name = intent?.getStringExtra(EXTRA_NAME).orEmpty()
         val notes = intent?.getStringExtra(EXTRA_NOTES).orEmpty()
+        eventId = intent?.getLongExtra(EXTRA_EVENT_ID, -1L) ?: -1L
+        contactDisplay = name.ifBlank { getString(R.string.overlay_default_title) }
 
         startInForeground(name, notes)
         registerCallStateListener()
@@ -110,8 +115,16 @@ class NotesOverlayService : Service() {
         when (state) {
             TelephonyManager.CALL_STATE_OFFHOOK,
             TelephonyManager.CALL_STATE_RINGING -> sawCallActive = true
-            TelephonyManager.CALL_STATE_IDLE -> if (sawCallActive) stopSelf()
+            TelephonyManager.CALL_STATE_IDLE -> if (sawCallActive) onCallEnded()
         }
+    }
+
+    private fun onCallEnded() {
+        if (!resultPromptShown && eventId >= 0) {
+            resultPromptShown = true
+            CallNotifications.showResultPrompt(this, eventId, contactDisplay)
+        }
+        stopSelf()
     }
 
     private fun unregisterCallStateListener() {
@@ -237,11 +250,13 @@ class NotesOverlayService : Service() {
         private const val NOTIFICATION_ID = 4242
         private const val EXTRA_NAME = "name"
         private const val EXTRA_NOTES = "notes"
+        private const val EXTRA_EVENT_ID = "event_id"
 
-        fun start(context: Context, name: String, notes: String) {
+        fun start(context: Context, eventId: Long, name: String, notes: String) {
             val intent = Intent(context, NotesOverlayService::class.java).apply {
                 putExtra(EXTRA_NAME, name)
                 putExtra(EXTRA_NOTES, notes)
+                putExtra(EXTRA_EVENT_ID, eventId)
             }
             context.startForegroundService(intent)
         }

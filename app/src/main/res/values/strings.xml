@@ -5,6 +5,14 @@
     <!-- List screen -->
     <string name="list_title">Scheduled Calls</string>
     <string name="list_empty">No scheduled calls. Tap + to add one.</string>
+    <string name="list_empty_filtered">No matches for the current filter.</string>
+    <string name="search_hint">Search name, phone, or notes</string>
+    <string name="action_clear">Clear</string>
+    <string name="filter_all">All</string>
+    <string name="filter_today">Today</string>
+    <string name="filter_this_week">This week</string>
+    <string name="filter_recurring">Recurring</string>
+    <string name="filter_triggered">Triggered</string>
     <string name="action_add">Add</string>
     <string name="action_delete">Delete</string>
     <string name="action_history">History</string>
@@ -60,6 +68,23 @@
     <string name="channel_confirm_description">Heads-up before placing a scheduled call</string>
     <string name="channel_notes_name">Call notes</string>
     <string name="channel_notes_description">Shows your notes during a scheduled call</string>
+    <string name="channel_result_name">Call result prompts</string>
+    <string name="channel_result_description">Asks how each scheduled call went</string>
+
+    <!-- Result prompt -->
+    <string name="result_prompt_title">How did your call with %1$s go?</string>
+    <string name="result_prompt_body">Tap an option, or open to add notes.</string>
+    <string name="result_question">How did the call go?</string>
+    <string name="result_for_contact">Result for %1$s</string>
+    <string name="result_loading">Loading…</string>
+    <string name="result_event_missing">Could not find that call.</string>
+    <string name="label_what_happened">What happened? (optional)</string>
+    <string name="action_skip">Skip</string>
+    <string name="result_reached">Reached</string>
+    <string name="result_no_answer">No answer</string>
+    <string name="result_voicemail">Voicemail</string>
+    <string name="result_follow_up">Follow up</string>
+    <string name="result_other">Other</string>
     <string name="confirm_title">Calling %1$s</string>
     <string name="confirm_auto_dial">Auto-dialing in 30s.</string>
     <string name="action_call_now">Call now</string>

@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.scheduler.calls.R
 import com.scheduler.calls.data.CallEvent
 import com.scheduler.calls.data.CallOutcome
+import com.scheduler.calls.data.CallResult
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -64,10 +67,11 @@ fun HistoryScreen(history: List<CallEvent>, onBack: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EventRow(event: CallEvent) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 event.contactName.ifBlank { event.phoneNumber },
                 fontWeight = FontWeight.Bold
@@ -79,11 +83,30 @@ private fun EventRow(event: CallEvent) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary
             )
+
+            event.callResult?.let { result ->
+                AssistChip(
+                    onClick = {},
+                    label = { Text(stringResource(resultLabelRes(result))) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            }
+
             if (event.notes.isNotBlank()) {
                 Text(
                     event.notes,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            if (event.resultNotes.isNotBlank()) {
+                Text(
+                    event.resultNotes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -95,6 +118,14 @@ private fun outcomeLabelRes(o: CallOutcome): Int = when (o) {
     CallOutcome.AUTO_FIRED -> R.string.outcome_auto_fired
     CallOutcome.SNOOZED -> R.string.outcome_snoozed
     CallOutcome.CANCELLED -> R.string.outcome_cancelled
+}
+
+private fun resultLabelRes(r: CallResult): Int = when (r) {
+    CallResult.REACHED -> R.string.result_reached
+    CallResult.NO_ANSWER -> R.string.result_no_answer
+    CallResult.VOICEMAIL -> R.string.result_voicemail
+    CallResult.FOLLOW_UP -> R.string.result_follow_up
+    CallResult.OTHER -> R.string.result_other
 }
 
 private val historyFormat = SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault())

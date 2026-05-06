@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -31,6 +32,19 @@ class CallsViewModel(app: Application) : AndroidViewModel(app) {
 
     val calls: StateFlow<List<ScheduledCall>> =
         repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _filter = MutableStateFlow(CallFilter.ALL)
+    val filter: StateFlow<CallFilter> = _filter.asStateFlow()
+
+    val filteredCalls: StateFlow<List<ScheduledCall>> =
+        combine(calls, _searchQuery, _filter) { all, q, f -> applyFilter(all, q, f) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun setSearchQuery(q: String) { _searchQuery.value = q }
+    fun setFilter(f: CallFilter) { _filter.value = f }
 
     val history: StateFlow<List<CallEvent>> =
         repo.observeHistory().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

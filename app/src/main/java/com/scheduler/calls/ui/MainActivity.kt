@@ -57,6 +57,9 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val calls by viewModel.calls.collectAsState()
+                    val filteredCalls by viewModel.filteredCalls.collectAsState()
+                    val searchQuery by viewModel.searchQuery.collectAsState()
+                    val activeFilter by viewModel.filter.collectAsState()
                     val history by viewModel.history.collectAsState()
                     val syncing by viewModel.syncing.collectAsState()
                     val syncMessage by viewModel.syncMessage.collectAsState()
@@ -81,7 +84,12 @@ class MainActivity : ComponentActivity() {
                     NavHost(navController = navController, startDestination = "list") {
                         composable("list") {
                             ScheduleListScreen(
-                                calls = calls,
+                                calls = filteredCalls,
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = viewModel::setSearchQuery,
+                                activeFilter = activeFilter,
+                                onFilterChange = viewModel::setFilter,
+                                totalCount = calls.size,
                                 onAdd = { navController.navigate("edit/0") },
                                 onEdit = { navController.navigate("edit/${it.id}") },
                                 onDelete = viewModel::delete,

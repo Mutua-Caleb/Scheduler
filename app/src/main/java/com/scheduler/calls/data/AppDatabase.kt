@@ -15,11 +15,16 @@ class Converters {
     @TypeConverter fun fromOutcome(value: CallOutcome): String = value.name
     @TypeConverter fun toOutcome(value: String): CallOutcome =
         runCatching { CallOutcome.valueOf(value) }.getOrDefault(CallOutcome.CALLED)
+
+    @TypeConverter fun fromResult(value: CallResult?): String? = value?.name
+    @TypeConverter fun toResult(value: String?): CallResult? = value?.let {
+        runCatching { CallResult.valueOf(it) }.getOrNull()
+    }
 }
 
 @Database(
     entities = [ScheduledCall::class, CallEvent::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
