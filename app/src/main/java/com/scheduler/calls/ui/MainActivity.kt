@@ -92,7 +92,6 @@ class MainActivity : ComponentActivity() {
                                 totalCount = calls.size,
                                 onAdd = { navController.navigate("edit/0") },
                                 onEdit = { navController.navigate("edit/${it.id}") },
-                                onDelete = viewModel::delete,
                                 onHistory = { navController.navigate("history") },
                                 onSettings = { navController.navigate("settings") }
                             )

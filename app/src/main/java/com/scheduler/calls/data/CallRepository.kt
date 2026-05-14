@@ -31,16 +31,6 @@ class CallRepository(
     suspend fun applyFromSync(call: ScheduledCall): Long =
         if (call.id == 0L) callDao.insert(call) else { callDao.update(call); call.id }
 
-    suspend fun softDelete(call: ScheduledCall) {
-        callDao.update(
-            call.copy(
-                tombstone = true,
-                triggered = true,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
-    }
-
     suspend fun markTriggered(id: Long) = callDao.markTriggered(id)
 
     suspend fun update(call: ScheduledCall) {

@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Search
@@ -67,7 +66,6 @@ fun ScheduleListScreen(
     totalCount: Int,
     onAdd: () -> Unit,
     onEdit: (ScheduledCall) -> Unit,
-    onDelete: (ScheduledCall) -> Unit,
     onHistory: () -> Unit,
     onSettings: () -> Unit
 ) {
@@ -103,13 +101,23 @@ fun ScheduleListScreen(
 
             if (calls.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        if (totalCount == 0) stringResource(R.string.list_empty)
-                        else stringResource(R.string.list_empty_filtered)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            if (totalCount == 0) stringResource(R.string.list_empty)
+                            else stringResource(R.string.list_empty_filtered)
+                        )
+                        if (totalCount == 0) {
+                            Spacer(Modifier.padding(top = 12.dp))
+                            Text(
+                                stringResource(R.string.delete_disabled_explainer),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             } else {
                 LazyColumn(
@@ -117,7 +125,7 @@ fun ScheduleListScreen(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(calls, key = { it.id }) { call -> CallRow(call, onEdit, onDelete) }
+                    items(calls, key = { it.id }) { call -> CallRow(call, onEdit) }
                 }
             }
         }
@@ -174,8 +182,7 @@ private fun FilterRow(active: CallFilter, onChange: (CallFilter) -> Unit) {
 @Composable
 private fun CallRow(
     call: ScheduledCall,
-    onEdit: (ScheduledCall) -> Unit,
-    onDelete: (ScheduledCall) -> Unit
+    onEdit: (ScheduledCall) -> Unit
 ) {
     val context = LocalContext.current
     val avatarColor = remember(call.contactName, call.phoneNumber) {
@@ -235,12 +242,6 @@ private fun CallRow(
                         )
                     }
                 }
-            }
-            IconButton(onClick = { onDelete(call) }) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.action_delete)
-                )
             }
         }
     }

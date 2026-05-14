@@ -112,16 +112,6 @@ class CallsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun delete(call: ScheduledCall) {
-        viewModelScope.launch {
-            CallScheduler.cancel(getApplication(), call.id)
-            repo.softDelete(call)
-            if (syncSettings.isConfigured) {
-                SyncWorker.enqueueOneShot(getApplication())
-            }
-        }
-    }
-
     fun syncNow() {
         viewModelScope.launch {
             _syncing.value = true

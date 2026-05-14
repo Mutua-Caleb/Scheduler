@@ -122,6 +122,13 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+
+            Text(
+                stringResource(R.string.delete_disabled_explainer),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 12.dp)
+            )
         }
     }
 }

@@ -6,6 +6,7 @@
     <string name="list_title">Scheduled Calls</string>
     <string name="list_empty">No scheduled calls. Tap + to add one.</string>
     <string name="list_empty_filtered">No matches for the current filter.</string>
+    <string name="delete_disabled_explainer">Calls can only be deleted from the desktop app. This keeps you committed to plans you\'ve already made.</string>
     <string name="search_hint">Search name, phone, or notes</string>
     <string name="action_clear">Clear</string>
     <string name="filter_all">All</string>
